@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/dig"
 	_ "modernc.org/sqlite"
 )
 
@@ -59,8 +60,6 @@ func NewDB() *sql.DB {
 	return db
 }
 
-
-
 func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := c.Service.GetAllProducts()
 
@@ -68,15 +67,11 @@ func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-
-
-
-
 func main() {
 	r := mux.NewRouter()
-
+	container := dig.New()
 	r.HandleFunc("/products", GetProductsHandler).Methods("GET")
-
+	fmt.Printf(container)
 	fmt.Println("Server is listening...")
 	http.ListenAndServe(":8080", r)
 }
