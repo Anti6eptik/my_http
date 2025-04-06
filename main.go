@@ -2,12 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"go.uber.org/dig"
 	_ "modernc.org/sqlite"
 )
 
@@ -17,107 +15,62 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func GetProductsHandler(db *sql.DB, w http.ResponseWriter, r *http.Request) {
+func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
+	response, err := c.Service.GetAllProducts()
 
-	response := GetJsonProducts(db)
 	w.Write(response)
 	w.WriteHeader(http.StatusOK)
 }
 
-func PostProductsHandler(db *sql.DB, w http.ResponseWriter, r *http.Request) {
-
-	array, code := PostJsonProducts(db, r)
-	if code == "201" {
-		w.Write(array)
-		w.WriteHeader(http.StatusCreated)
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
+type Product struct {
+	Name   string
+	Amount int
 }
 
-func Get_json_id(id int) []byte {
-	var choto = map[string]int{"id": id}
-	data, err := json.Marshal(choto)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return data
+type Controller struct {
+	Service *Service
 }
 
-func PostJsonProducts(db *sql.DB, r *http.Request) ([]byte, string) {
-
-	var temp struct {
-		Name   string
-		Amount int
+func NewController(service *Service) *Controller {
+	return &Controller{
+		Service: service,
 	}
-	err := json.NewDecoder(r.Body).Decode(&temp)
-	if err != nil {
-		return nil, "400"
-	}
-
-	result, err := db.Exec("INSERT INTO products (name, amount) VALUES ($1, $2)", temp.Name, temp.Amount)
-	if err != nil {
-		panic(err)
-	}
-
-	id, _ := result.LastInsertId()
-
-	return Get_json_id(int(id)), "201"
-
 }
 
-func GetJsonProducts(db *sql.DB) []byte {
-
-	var temp []struct {
-		Id     int
-		Name   string
-		Amount int
-	}
-
-	rows, err := db.Query("SELECT * FROM products")
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var p struct {
-			Id     int
-			Name   string
-			Amount int
-		}
-		err := rows.Scan(&p.Id, &p.Name, &p.Amount)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		temp = append(temp, p)
-	}
-
-	data, err := json.Marshal(temp)
-	if err != nil {
-		panic(err)
-	}
-	return data
+type Service struct {
+	Repository *Repository
 }
 
-func main() {
-	r := mux.NewRouter()
+func NewService(repository *Repository) *Service {
+	return &Service{
+		Repository: repository,
+	}
+}
 
-	container := dig.New()
+type Repository struct {
+	DB *sql.DB
+}
 
+func NewRepository(db *sql.DB) *Repository {
+	return &Repository{
+		DB: db,
+	}
+}
+
+func NewDB() *sql.DB {
 	db, err := sql.Open("sqlite", "database.db")
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+	return db
+}
 
-	container.Provide(func() *sql.DB { return db })
+func main() {
+	r := mux.NewRouter()
 
 	r.HandleFunc("/", HomeHandler)
-	r.HandleFunc("/products", container.invoke(GetProductsHandler)).Methods("GET")
-	r.HandleFunc("/products", container.invoke(PostProductsHandler)).Methods("POST")
+	r.HandleFunc("/products", GetProductsHandler).Methods("GET")
 
 	fmt.Println("Server is listening...")
 	http.ListenAndServe(":8080", r)
