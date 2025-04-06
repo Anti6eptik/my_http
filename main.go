@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"encoding/json"
+
 	"github.com/gorilla/mux"
 	"go.uber.org/dig"
 	_ "modernc.org/sqlite"
 )
-
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-
-	fmt.Fprintf(w, "Hello, World")
-	w.WriteHeader(http.StatusOK)
-}
 
 type Product struct {
 	Name   string
@@ -56,49 +52,51 @@ func NewDB() *sql.DB {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 	return db
 }
 
-func (s Service) GetAllProducts() {
-	response := s.Repository.GetAllProducts
+func (s Service) GetAllProducts() []byte {
+	data := s.Repository.GetAllProducts()
+	array, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	return array
+
 }
 
 func (r Repository) GetAllProducts() []struct {
-	id     int
-	name   string
-	amount int
+	Id     int
+	Name   string
+	Amount int
 } {
 	rows, err := r.DB.Query("select * from products")
 	if err != nil {
 		panic(err)
 	}
 
-	var temp struct {
-		id     int
-		name   string
-		amount int
+	var Temp struct {
+		Id     int
+		Name   string
+		Amount int
 	}
 
 	var result []struct {
-		id     int
-		name   string
-		amount int
+		Id     int
+		Name   string
+		Amount int
 	}
 
 	for rows.Next() {
-		rows.Scan(&temp.id, &temp.name, &temp.amount)
-		result = append(result, temp)
+		rows.Scan(&Temp.Id, &Temp.Name, &Temp.Amount)
+		result = append(result, Temp)
 	}
 
 	return result
 }
 
 func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
-	response, err := c.Service.GetAllProducts()
-	if err != nil {
-		panic(err)
-	}
+	response := c.Service.GetAllProducts()
 	w.Write(response)
 	w.WriteHeader(http.StatusOK)
 }
