@@ -60,10 +60,43 @@ func NewDB() *sql.DB {
 	return db
 }
 
+func (s Service) GetAllProducts() {
+	response := s.Repository.GetAllProducts
+}
+
+func (r Repository) GetAllProducts() []struct {
+	id     int
+	name   string
+	amount int
+} {
+	rows, err := r.DB.Query("select * from products")
+	if err != nil {
+		panic(err)
+	}
+
+	var temp struct {
+		id     int
+		name   string
+		amount int
+	}
+
+	var result []struct {
+		id     int
+		name   string
+		amount int
+	}
+
+	for rows.Next() {
+		rows.Scan(&temp.id, &temp.name, &temp.amount)
+		result = append(result, temp)
+	}
+
+	return result
+}
 
 func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := c.Service.GetAllProducts()
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	w.Write(response)
