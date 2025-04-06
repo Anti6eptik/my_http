@@ -15,13 +15,6 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
-	response, err := c.Service.GetAllProducts()
-
-	w.Write(response)
-	w.WriteHeader(http.StatusOK)
-}
-
 type Product struct {
 	Name   string
 	Amount int
@@ -31,24 +24,24 @@ type Controller struct {
 	Service *Service
 }
 
+type Service struct {
+	Repository *Repository
+}
+
+type Repository struct {
+	DB *sql.DB
+}
+
 func NewController(service *Service) *Controller {
 	return &Controller{
 		Service: service,
 	}
 }
 
-type Service struct {
-	Repository *Repository
-}
-
 func NewService(repository *Repository) *Service {
 	return &Service{
 		Repository: repository,
 	}
-}
-
-type Repository struct {
-	DB *sql.DB
 }
 
 func NewRepository(db *sql.DB) *Repository {
@@ -66,10 +59,22 @@ func NewDB() *sql.DB {
 	return db
 }
 
+
+
+func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
+	response, err := c.Service.GetAllProducts()
+
+	w.Write(response)
+	w.WriteHeader(http.StatusOK)
+}
+
+
+
+
+
 func main() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", HomeHandler)
 	r.HandleFunc("/products", GetProductsHandler).Methods("GET")
 
 	fmt.Println("Server is listening...")
