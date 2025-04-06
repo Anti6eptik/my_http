@@ -59,18 +59,12 @@ func NewDB() *sql.DB {
 	return db
 }
 
-
-
 func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := c.Service.GetAllProducts()
 
 	w.Write(response)
 	w.WriteHeader(http.StatusOK)
 }
-
-
-
-
 
 func main() {
 	r := mux.NewRouter()
