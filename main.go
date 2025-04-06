@@ -60,18 +60,27 @@ func NewDB() *sql.DB {
 	return db
 }
 
+
 func (c Controller) GetProductsHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := c.Service.GetAllProducts()
-
+	if err != nil{
+		panic(err)
+	}
 	w.Write(response)
 	w.WriteHeader(http.StatusOK)
 }
 
 func main() {
-	r := mux.NewRouter()
 	container := dig.New()
-	r.HandleFunc("/products", GetProductsHandler).Methods("GET")
-	fmt.Printf(container)
-	fmt.Println("Server is listening...")
-	http.ListenAndServe(":8080", r)
+	_ = container.Provide(NewController)
+	_ = container.Provide(NewService)
+	_ = container.Provide(NewRepository)
+	_ = container.Provide(NewDB)
+
+	container.Invoke(func(controller *Controller) {
+		r := mux.NewRouter()
+		r.HandleFunc("/products", controller.GetProductsHandler).Methods("GET")
+		fmt.Println("Server is listening...")
+		http.ListenAndServe(":8080", r)
+	})
 }
